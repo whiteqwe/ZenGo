@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZenGo AI 围棋人机对弈与实时研判系统</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部全景导航栏 -->
+        <header class="app-header glass-card">
+            <div class="header-left">
+                <div class="logo-mark">
+                    <span class="yin-yang-icon">☯</span>
+                </div>
+                <div class="header-title-box">
+                    <h1>ZenGo <span>AI 围棋对弈与研判系统</span></h1>
+                    <p class="subtitle">9×9 高性能神经网络 · MCTS 树搜索 · KataGo 深度研判</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="engine-badge-group">
+                    <div class="engine-pill" title="对弈与裁判引擎状态">
+                        <span class="pulse-dot"></span>
+                        <span class="engine-name" id="top-engine-tag">KataGo 九段 + AlphaZero</span>
+                    </div>
+                    <span class="system-status-badge">9×9 分先</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主体三栏响应式工作台 -->
+        <main class="main-layout">
+            <!-- 左侧面板：对局控制与行棋操作 -->
+            <aside class="panel panel-left glass-card">
+                <div class="panel-section-header">
+                    <div class="section-title-wrap">
+                        <span class="section-icon">🎮</span>
+                        <span class="panel-title">对局控制台</span>
+                    </div>
+                    <span class="badge-mini" id="move-badge-mini">0 手</span>
+                </div>
+
+                <!-- 对局核心状态卡片 -->
+                <div class="status-card">
+                    <div class="status-item turn-status-item">
+                        <span class="status-label">当前行棋</span>
+                        <div id="turn-badge" class="turn-indicator black-turn">
+                            <span class="stone-bullet black-bullet"></span>
+                            <span class="turn-text">黑方落子 (玩家)</span>
+                        </div>
+                    </div>
+                    <div class="status-grid-2">
+                        <div class="status-item compact">
+                            <span class="status-label">对局手数</span>
+                            <span id="move-count" class="status-value highlight-num">0 手</span>
+                        </div>
+                        <div class="status-item compact">
+                            <span class="status-label">提子统计</span>
+                            <span class="status-value"><span class="cap-b">黑 <b id="black-captures">0</b></span> / <span class="cap-w">白 <b id="white-captures">0</b></span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 操作按钮区（2x3 对称网格） -->
+                <div class="action-button-groups">
+                    <!-- 行棋操作 -->
+                    <div class="btn-group-grid">
+                        <button id="btn-pass" class="btn btn-secondary" title="本手放弃落子">
+                            <span class="btn-icon">⏸️</span>
+                            <span>虚手 (Pass)</span>
+                        </button>
+                        <button id="btn-undo" class="btn btn-secondary" title="撤销上两手行棋">
+                            <span class="btn-icon">↩️</span>
+                            <span>悔棋 (Undo)</span>
+                        </button>
+                    </div>
+
+                    <!-- 终局裁决与导出 -->
+                    <div class="btn-group-grid">
+                        <button id="btn-request-scoring" class="btn btn-primary" title="采用中国规则数子终局并判定胜负">
+                            <span class="btn-icon">🧮</span>
+                            <span>申请数子</span>
+                        </button>
+                        <button id="btn-export-sgf" class="btn btn-utility" title="导出当前完整棋谱为标准 SGF 格式">
+                            <span class="btn-icon">💾</span>
+                            <span>导出 SGF</span>
+                        </button>
+                    </div>
+
+                    <!-- 对局管理 -->
+                    <div class="btn-group-grid">
+                        <button id="btn-resign" class="btn btn-warning" title="主动认输终局">
+                            <span class="btn-icon">🏳️</span>
+                            <span>认输</span>
+                        </button>
+                        <button id="btn-reset" class="btn btn-danger" title="清空盘面开始全新对局">
+                            <span class="btn-icon">🔄</span>
+                            <span>新开局</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 辅助视图与研判开关组 -->
+                <div class="toggle-card-group">
+                    <label class="switch-container" title="在棋盘上高亮显示 AI 推荐的落子点位及胜率">
+                        <input type="checkbox" id="toggle-hints">
+                        <span class="switch-slider"></span>
+                        <span class="switch-text">
+                            <span class="switch-title">💡 盘面落点提示</span>
+                            <span class="switch-sub">高亮 Top3 候选点</span>
+                        </span>
+                    </label>
+                    <div class="switch-divider"></div>
+                    <label class="switch-container" title="开启或关闭棋盘上方的实时 AI 胜率与目数差分析条">
+                        <input type="checkbox" id="toggle-winrate" checked>
+                        <span class="switch-slider"></span>
+                        <span class="switch-text">
+                            <span class="switch-title">📊 顶部 AI 胜率条</span>
+                            <span class="switch-sub">显示胜率与目数差</span>
+                        </span>
+                    </label>
+                    <div class="switch-divider"></div>
+                    <label class="switch-container" title="在棋盘上直观展示黑白双方实地划分、热力分布与死子状态">
+                        <input type="checkbox" id="toggle-territory">
+                        <span class="switch-slider"></span>
+                        <span class="switch-text">
+                            <span class="switch-title">🗺️ 实时形势判断</span>
+                            <span class="switch-sub">盘面目数热力与死子</span>
+                        </span>
+                    </label>
+                </div>
+            </aside>
+
+            <!-- 中间核心区：棋盘居中与全景胜率 -->
+            <section class="panel panel-center glass-card">
+                <!-- 专业对弈双向胜率、形势条与读秒对弈时钟 -->
+                <div class="winrate-container">
+                    <div class="winrate-header">
+                        <!-- 黑方信息与时钟 -->
+                        <div class="player-info-badge black-badge" id="black-clock-box">
+                            <span class="stone-icon black-icon"></span>
+                            <div class="player-text-wrap">
+                                <div class="player-top-row">
+                                    <span class="player-role" id="black-player-tag">黑方 (玩家)</span>
+                                    <span class="player-rate" id="black-winrate">50.0%</span>
+                                </div>
+                                <div class="player-clock-row">
+                                    <span class="digital-clock" id="black-clock-time">01:00</span>
+                                    <span class="byoyomi-tag" id="black-byoyomi-tag">3次 20s</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 盘面研判与目数差 -->
+                        <div class="eval-center-box">
+                            <span class="situation-badge" id="situation-badge">势均力敌</span>
+                            <span class="score-lead-text" id="score-lead-text">目数差: 0.0</span>
+                        </div>
+
+                        <!-- 白方信息与时钟 -->
+                        <div class="player-info-badge white-badge" id="white-clock-box">
+                            <div class="player-text-wrap text-right">
+                                <div class="player-top-row justify-end">
+                                    <span class="player-rate" id="white-winrate">50.0%</span>
+                                    <span class="player-role" id="white-player-tag">白方 (AI)</span>
+                                </div>
+                                <div class="player-clock-row justify-end">
+                                    <span class="byoyomi-tag" id="white-byoyomi-tag">3次 20s</span>
+                                    <span class="digital-clock" id="white-clock-time">01:00</span>
+                                </div>
+                            </div>
+                            <span class="stone-icon white-icon"></span>
+                        </div>
+                    </div>
+                    <div class="winrate-bar-wrapper">
+                        <div class="winrate-bar-black" id="bar-black" style="width: 50%;"></div>
+                        <div class="winrate-bar-white" id="bar-white" style="width: 50%;"></div>
+                    </div>
+                </div>
+
+                <!-- 居中的 9x9 沉浸式棋盘 -->
+                <div class="board-outer-frame">
+                    <div class="board-wood-container">
+                        <canvas id="go-board" width="480" height="480"></canvas>
+                    </div>
+                </div>
+
+                <!-- AI 申请终局数子交互弹窗 -->
+                <div id="ai-scoring-modal" class="ai-scoring-modal" style="display: none;">
+                    <div class="ai-scoring-content glass-card">
+                        <div class="scoring-modal-header">
+                            <span class="scoring-modal-icon">🧮</span>
+                            <span class="scoring-modal-title">AI 提议：终局数子判胜</span>
+                        </div>
+                        <div class="scoring-modal-body">
+                            <p class="scoring-modal-desc">
+                                AI 研判盘面所有边界与目数已完全定型（AI 本手选择虚手 Pass）。
+                            </p>
+                            <div class="scoring-lead-pill" id="modal-lead-pill">
+                                📊 当前研判：双方势均力敌
+                            </div>
+                            <p class="scoring-modal-prompt">您是否同意现在进行数子终局裁定？</p>
+                        </div>
+                        <div class="scoring-modal-actions">
+                            <button id="btn-scoring-decline" class="btn btn-secondary" title="拒绝数子，继续行棋">
+                                <span>⏳ 暂不同意 (继续下)</span>
+                            </button>
+                            <button id="btn-scoring-agree" class="btn btn-primary" title="同意数子终局并裁定胜负">
+                                <span>✅ 同意数子 (立即裁决)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 终局结果模态提示 -->
+                <div id="game-over-banner" class="game-over-banner" style="display: none;">
+                    <div class="banner-icon-wrap">🏆</div>
+                    <div class="banner-text-wrap">
+                        <h2 id="result-title">对局结束</h2>
+                        <p id="result-detail"></p>
+                    </div>
+                </div>
+
+                <!-- 底部 AI 思考动态指示条 -->
+                <div class="ai-status-indicator" id="ai-status">
+                    <div class="spinner-pulse" id="ai-spinner" style="display: none;">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <span id="ai-status-text">等待玩家落子...</span>
+                </div>
+            </section>
+
+            <!-- 右侧面板：AI 深度剖析、数据看板与全局设置 -->
+            <aside class="panel panel-right glass-card">
+                <div class="panel-section-header">
+                    <div class="section-title-wrap">
+                        <span class="section-icon">🦅</span>
+                        <span class="panel-title">AI 决策、分析与设置</span>
+                    </div>
+                </div>
+
+                <!-- 候选着法排行列表（随落点提示联动） -->
+                <div class="candidate-section" style="display: none;">
+                    <div class="section-sub-header">
+                        <span class="sub-title">💡 推荐落点排行 (Top Moves)</span>
+                        <span class="sub-hint">悬停与棋盘联动高亮</span>
+                    </div>
+                    <div id="candidate-list" class="candidate-list">
+                        <div class="candidate-placeholder">
+                            <span class="placeholder-icon">⏳</span>
+                            <span>落子后实时计算候选点...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI 局势研判与大局观解说 -->
+                <div class="analysis-box">
+                    <div class="analysis-header">
+                        <span class="analysis-icon">💡</span>
+                        <span class="analysis-title">战术与大局观剖析</span>
+                    </div>
+                    <div class="analysis-content" id="ai-commentary">
+                        开局阶段双方势均力敌。请在棋盘上落子，AI 将实时分析局势优劣、大龙死活与要点争夺。
+                    </div>
+                </div>
+
+                <!-- 胜率走势折线图卡片 -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <span>📈 胜率走势曲线</span>
+                        </div>
+                        <div class="chart-legend">
+                            <span class="legend-item"><i class="dot black-dot"></i>黑</span>
+                            <span class="legend-item"><i class="dot white-dot"></i>白</span>
+                        </div>
+                    </div>
+                    <div class="canvas-chart-box">
+                        <canvas id="winrate-chart" width="240" height="85"></canvas>
+                    </div>
+                </div>
+
+                <!-- 实时形势判断与目数卡片 -->
+                <div id="territory-card" class="territory-card" style="display: none;">
+                    <div class="territory-header">
+                        <span>📊 盘面形势判断 (野狐风格)</span>
+                        <button id="btn-close-terr" class="close-btn" title="关闭形势判断">&times;</button>
+                    </div>
+                    <div class="territory-body">
+                        <div class="terr-row">
+                            <span class="terr-label">🖤 黑方实地:</span>
+                            <strong id="terr-black" class="terr-val-black">0 目</strong>
+                        </div>
+                        <div class="terr-row">
+                            <span class="terr-label">🤍 白方实地:</span>
+                            <strong id="terr-white" class="terr-val-white">0 目 (含贴目 7.5 = 7.5 目)</strong>
+                        </div>
+                        <div class="terr-divider"></div>
+                        <div class="terr-row terr-highlight">
+                            <span class="terr-label">🎯 形势研判:</span>
+                            <span id="terr-lead" class="terr-val-lead">双方势均力敌</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 规则与对弈高级参数配置区（紧凑折叠卡片） -->
+                <details class="settings-accordion">
+                    <summary class="settings-summary">
+                        <span>⚙️ 引擎、规则与时钟设置</span>
+                        <span class="arrow-icon">▾</span>
+                    </summary>
+                    <div class="settings-content">
+                        <!-- 1. 棋盘路数 -->
+                        <div class="setting-field">
+                            <label class="setting-label">棋盘路数规格</label>
+                            <select id="select-board-size" class="select-dropdown">
+                                <option value="9" selected>🟢 9 × 9 路棋盘 (快节奏死活对杀)</option>
+                                <option value="13">🟡 13 × 13 路棋盘 (大格局中腹争锋)</option>
+                                <option value="19">🔴 19 × 19 路标准大盘 (专业比赛级 · 纯 KataGo 巅峰)</option>
+                            </select>
+                        </div>
+
+                        <!-- 2. 对弈引擎 -->
+                        <div class="setting-field">
+                            <label class="setting-label">对弈 AI 引擎</label>
+                            <select id="select-opponent-engine" class="select-dropdown">
+                                <option value="katago" selected>👑 KataGo 巅峰九段 (世界顶级)</option>
+                                <option value="alphazero">🌱 自建 AlphaZero 模型</option>
+                            </select>
+                        </div>
+
+                        <!-- 3. AI 思考深度 (推演算力) -->
+                        <div class="setting-field">
+                            <label class="setting-label">AI 思考深度 (推演算力模式)</label>
+                            <select id="select-ai-visits" class="select-dropdown">
+                                <option value="-1" selected>🧠 智能自适应深度 (简单0.2s · 常规1.5s · 复杂6000次/5s · 推荐)</option>
+                                <option value="150">⚡ 闪电快棋 (150 次推演 · ~0.1 秒)</option>
+                                <option value="500">🏃 快速精算 (500 次推演 · ~0.3 秒)</option>
+                                <option value="1500">🏆 职业大师 (1500 次推演 · ~1.2 秒)</option>
+                                <option value="3000">👑 巅峰超算 (3000 次推演 · ~2.2 秒)</option>
+                                <option value="6000">🌌 终极神之一手 (6000 次推演 · ~4.0 秒)</option>
+                            </select>
+                        </div>
+
+                        <!-- 4. 裁判分析引擎 -->
+                        <div class="setting-field">
+                            <label class="setting-label">裁判分析引擎</label>
+                            <select id="select-referee-engine" class="select-dropdown">
+                                <option value="katago" selected>🦅 KataGo 深度分析 (高精度)</option>
+                                <option value="alphazero">🧠 自建神经网络评估</option>
+                            </select>
+                        </div>
+
+                        <!-- 5. 对弈与让子规格 & 贴目规则 (整齐 2 列) -->
+                        <div class="setting-grid-2">
+                            <div class="setting-field">
+                                <label class="setting-label">对弈与让子规格</label>
+                                <select id="select-game-spec" class="select-dropdown">
+                                    <optgroup label="── 分先正常对弈 ──">
+                                        <option value="black_0" selected>🖤 玩家执黑 · 分先 (黑先行/贴7目)</option>
+                                        <option value="white_0">🤍 玩家执白 · 分先 (AI先行/贴7目)</option>
+                                        <option value="random_0">🎲 猜先对弈 · 分先 (随机分配黑白)</option>
+                                    </optgroup>
+                                    <optgroup label="── AI 让 玩家 (玩家受让) ──">
+                                        <option value="black_1">🎯 AI 让先 (玩家执黑/贴0.5目)</option>
+                                        <option value="black_2">🔴 AI 让 2 子 (玩家执黑/AI先走)</option>
+                                        <option value="black_3">🔴 AI 让 3 子 (玩家执黑/AI先走)</option>
+                                        <option value="black_4">🔴 AI 让 4 子 (玩家执黑/AI先走)</option>
+                                        <option value="black_5">🔴 AI 让 5 子 (玩家占5星位/AI先走)</option>
+                                        <option value="black_6">🔴 AI 让 6 子 (玩家占6星位/AI先走)</option>
+                                        <option value="black_7">🔴 AI 让 7 子 (玩家占7星位/AI先走)</option>
+                                        <option value="black_8">🔴 AI 让 8 子 (玩家占8星位/AI先走)</option>
+                                        <option value="black_9">🔴 AI 让 9 子 (玩家占九星位/AI先走)</option>
+                                    </optgroup>
+                                    <optgroup label="── 玩家 让 AI (玩家让子) ──">
+                                        <option value="white_1">👑 玩家让先 (AI执黑先走/贴0.5目)</option>
+                                        <option value="white_2">🔴 玩家让 2 子 (AI占2星位/玩家先走)</option>
+                                        <option value="white_3">🔴 玩家让 3 子 (AI占3星位/玩家先走)</option>
+                                        <option value="white_4">🔴 玩家让 4 子 (AI占4星位/玩家先走)</option>
+                                        <option value="white_5">🔴 玩家让 5 子 (AI占5星位/玩家先走)</option>
+                                        <option value="white_6">🔴 玩家让 6 子 (AI占6星位/玩家先走)</option>
+                                        <option value="white_7">🔴 玩家让 7 子 (AI占7星位/玩家先走)</option>
+                                        <option value="white_8">🔴 玩家让 8 子 (AI占8星位/玩家先走)</option>
+                                        <option value="white_9">🔴 玩家让 9 子 (AI占九星位/玩家先走)</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="setting-field">
+                                <label class="setting-label">贴目规则</label>
+                                <select id="select-komi" class="select-dropdown">
+                                    <option value="7.0" selected>贴 7.0 目 (9x9黄金平衡)</option>
+                                    <option value="7.5">贴 7.5 目 (中国规则)</option>
+                                    <option value="6.5">贴 6.5 目 (日韩规则)</option>
+                                    <option value="0.5">贴 0.5 目 (让子/让先)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 6. AI 认输策略 -->
+                        <div class="setting-field">
+                            <label class="setting-label">AI 认输策略</label>
+                            <select id="select-resign-mode" class="select-dropdown">
+                                <option value="smart" selected>🎯 智能认输 (死局自动投子)</option>
+                                <option value="never">⚔️ 死战到底 (决不认输)</option>
+                                <option value="quick">⚡ 快速认输 (劣势即投)</option>
+                            </select>
+                        </div>
+
+                        <!-- 7. 对弈用时与读秒规则 -->
+                        <div class="setting-field">
+                            <label class="setting-label">对弈用时与读秒规则</label>
+                            <select id="select-time-control" class="select-dropdown">
+                                <option value="rapid" selected>🏃 快速对弈 (1分局时 + 3次20秒读秒 · 野狐推荐)</option>
+                                <option value="blitz">⚡ 闪电超快棋 (0分局时 + 3次10秒读秒)</option>
+                                <option value="standard">🏆 锦标标准 (5分局时 + 3次30秒读秒)</option>
+                                <option value="slow">👑 慢棋深思 (15分局时 + 3次30秒读秒)</option>
+                                <option value="none">♾️ 无限时 (自由研究/不限时)</option>
+                            </select>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- 神经网络与算力遥测监控 -->
+                <div class="net-stats-box">
+                    <div class="stat-header">
+                        <span>📡 引擎与计算遥测</span>
+                        <span class="stat-ok" id="net-status">● 正常在线</span>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <span class="stat-k">计算深度</span>
+                            <span class="stat-v" id="mcts-sims-val">自适应</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-k">价值网估值</span>
+                            <span class="stat-v highlight-val" id="net-value">0.000</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-k">棋盘规格</span>
+                            <span class="stat-v">9×9 路</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-k">对局规则</span>
+                            <span class="stat-v">中国规则 (贴7目)</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+# Python 虚拟环境与依赖
+.venv/
+venv/
+env/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Python 字节码与缓存
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 日志与临时调试数据
+*.log
+analysis_logs/
+gtp_logs/
+backend/katago/gtp_logs/
+backend/katago/KataGoData/
+backend/train/analysis_logs/
+
+# KataGo 第三方官方二进制与大模型（可通过 python setup_katago.py 自动下载）
+backend/katago/katago.exe
+backend/katago/kata9x9.bin.gz
+backend/katago/*.dll
+backend/katago/*.zip
+backend/katago/cacert.pem
+
+# 系统与编辑器缓存
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
