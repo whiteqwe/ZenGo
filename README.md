@@ -63,7 +63,7 @@ ZenGo/
 ### 1. 环境准备
 推荐使用 Python 3.10 或更高版本：
 ```bash
-git clone https://github.com/YOUR_USERNAME/ZenGo.git
+git clone https://github.com/whiteqwe/ZenGo.git
 cd ZenGo
 
 # 创建并激活虚拟环境 (可选)
